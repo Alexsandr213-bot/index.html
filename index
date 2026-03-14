@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShadowLink VPN</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a1a, #1a1a3a);
+            color: var(--tg-theme-text-color, #fff);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Анимированный фон с эмодзи */
+        .emoji-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .floating-emoji {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.15;
+            animation: float 20s linear infinite;
+            filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
+            user-select: none;
+            white-space: nowrap;
+        }
+        
+        .floating-emoji:nth-child(1) { top: 10%; left: 5%; animation-duration: 25s; font-size: 32px; }
+        .floating-emoji:nth-child(2) { top: 20%; left: 15%; animation-duration: 18s; font-size: 28px; animation-delay: -2s; }
+        .floating-emoji:nth-child(3) { top: 30%; left: 85%; animation-duration: 22s; font-size: 36px; animation-delay: -5s; }
+        .floating-emoji:nth-child(4) { top: 40%; left: 45%; animation-duration: 30s; font-size: 40px; animation-delay: -8s; }
+        .floating-emoji:nth-child(5) { top: 50%; left: 75%; animation-duration: 15s; font-size: 26px; animation-delay: -3s; }
+        .floating-emoji:nth-child(6) { top: 60%; left: 25%; animation-duration: 28s; font-size: 34px; animation-delay: -12s; }
+        .floating-emoji:nth-child(7) { top: 70%; left: 55%; animation-duration: 20s; font-size: 30px; animation-delay: -7s; }
+        .floating-emoji:nth-child(8) { top: 80%; left: 35%; animation-duration: 24s; font-size: 38px; animation-delay: -15s; }
+        .floating-emoji:nth-child(9) { top: 15%; left: 95%; animation-duration: 26s; font-size: 42px; animation-delay: -10s; }
+        .floating-emoji:nth-child(10) { top: 85%; left: 65%; animation-duration: 19s; font-size: 29px; animation-delay: -4s; }
+        .floating-emoji:nth-child(11) { top: 45%; left: 8%; animation-duration: 23s; font-size: 33px; animation-delay: -9s; }
+        .floating-emoji:nth-child(12) { top: 25%; left: 72%; animation-duration: 27s; font-size: 37px; animation-delay: -14s; }
+        .floating-emoji:nth-child(13) { top: 65%; left: 88%; animation-duration: 21s; font-size: 31px; animation-delay: -6s; }
+        .floating-emoji:nth-child(14) { top: 75%; left: 12%; animation-duration: 29s; font-size: 35px; animation-delay: -11s; }
+        .floating-emoji:nth-child(15) { top: 35%; left: 92%; animation-duration: 17s; font-size: 27px; animation-delay: -13s; }
+        
+        /* Вторая волна эмодзи (двигаются в другом направлении) */
+        .floating-emoji-second {
+            position: absolute;
+            font-size: 20px;
+            opacity: 0.1;
+            animation: floatReverse 25s linear infinite;
+            filter: drop-shadow(0 0 15px rgba(123, 44, 191, 0.3));
+            user-select: none;
+        }
+        
+        .floating-emoji-second:nth-child(16) { top: 5%; left: 20%; animation-duration: 24s; font-size: 26px; }
+        .floating-emoji-second:nth-child(17) { top: 55%; left: 40%; animation-duration: 19s; font-size: 22px; animation-delay: -3s; }
+        .floating-emoji-second:nth-child(18) { top: 95%; left: 60%; animation-duration: 28s; font-size: 30px; animation-delay: -7s; }
+        .floating-emoji-second:nth-child(19) { top: 18%; left: 80%; animation-duration: 22s; font-size: 24px; animation-delay: -12s; }
+        .floating-emoji-second:nth-child(20) { top: 72%; left: 95%; animation-duration: 26s; font-size: 28px; animation-delay: -5s; }
+        .floating-emoji-second:nth-child(21) { top: 88%; left: 28%; animation-duration: 20s; font-size: 21px; animation-delay: -9s; }
+        .floating-emoji-second:nth-child(22) { top: 42%; left: 52%; animation-duration: 29s; font-size: 32px; animation-delay: -15s; }
+        .floating-emoji-second:nth-child(23) { top: 12%; left: 68%; animation-duration: 18s; font-size: 23px; animation-delay: -2s; }
+        .floating-emoji-second:nth-child(24) { top: 62%; left: 15%; animation-duration: 27s; font-size: 29px; animation-delay: -8s; }
+        .floating-emoji-second:nth-child(25) { top: 48%; left: 82%; animation-duration: 23s; font-size: 25px; animation-delay: -11s; }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0.1;
+            }
+            25% {
+                transform: translateY(-20px) translateX(10px) rotate(5deg);
+                opacity: 0.2;
+            }
+            50% {
+                transform: translateY(20px) translateX(-10px) rotate(-5deg);
+                opacity: 0.15;
+            }
+            75% {
+                transform: translateY(-10px) translateX(20px) rotate(3deg);
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0.1;
+            }
+        }
+        
+        @keyframes floatReverse {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0.08;
+            }
+            25% {
+                transform: translateY(20px) translateX(-15px) rotate(-3deg);
+                opacity: 0.15;
+            }
+            50% {
+                transform: translateY(-15px) translateX(15px) rotate(4deg);
+                opacity: 0.1;
+            }
+            75% {
+                transform: translateY(15px) translateX(-10px) rotate(-2deg);
+                opacity: 0.15;
+            }
+            100% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0.08;
+            }
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: rgba(22, 33, 62, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf, #ff00aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 4px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .ping-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .ping-low {
+            background: #00ff00;
+            box-shadow: 0 0 15px #00ff00;
+        }
+        
+        .ping-medium {
+            background: #ffff00;
+            box-shadow: 0 0 15px #ffff00;
+        }
+        
+        .ping-high {
+            background: #ff4444;
+            box-shadow: 0 0 15px #ff4444;
+        }
+        
+        .server-list {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .server-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .server-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .server-item:last-child {
+            border-bottom: none;
+        }
+        
+        .server-item.premium-server {
+            background: linear-gradient(90deg, rgba(255,215,0,0.15), transparent);
+            border-left: 3px solid gold;
+        }
+        
+        .server-item.free-server {
+            background: linear-gradient(90deg, rgba(100,100,100,0.15), transparent);
+            border-left: 3px solid #666;
+        }
+        
+        .server-item.premium-server::after {
+            content: "⭐ PREMIUM";
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: gold;
+            font-weight: bold;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border-radius: 10px;
+            backdrop-filter: blur(2px);
+        }
+        
+        .server-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        
+        .server-flag {
+            font-size: 28px;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+        }
+        
+        .server-name {
+            font-weight: 500;
+        }
+        
+        .server-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .server-ping {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .ping-low-text {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        .ping-medium-text {
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+        }
+        
+        .ping-high-text {
+            color: #ff4444;
+            text-shadow: 0 0 10px #ff4444;
+        }
+        
+        .load-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        
+        .load-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff00aa);
+            border-radius: 2px;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { opacity: 0.8; }
+        }
+        
+        .speed-test {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            padding: 20px;
+            border-radius: 16px;
+            margin: 20px 0;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .speed-meter {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+        
+        .speed-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf, #ff00aa);
+            border-radius: 4px;
+            transition: width 0.3s;
+            box-shadow: 0 0 20px #00d4ff;
+        }
+        
+        .speed-value {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #00d4ff;
+            margin: 8px 0;
+            text-shadow: 0 0 20px #00d4ff;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .feature-item {
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .feature-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 10px #00d4ff);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: rgba(22, 33, 62, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        
+        .tab:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .tab.active {
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            color: white;
+            border: none;
+            box-shadow: 0 0 20px #00d4ff;
+        }
+        
+        .tab.premium-tab {
+            border: 1px solid gold;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .premium-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, gold, #ffd700);
+            color: #1a1a2e;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 8px;
+            box-shadow: 0 0 10px gold;
+        }
+        
+        .free-badge {
+            display: inline-block;
+            background: #666;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+        
+        .subscription-status {
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .ping-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 16px 0;
+            font-size: 12px;
+            background: rgba(22, 33, 62, 0.5);
+            backdrop-filter: blur(5px);
+            padding: 10px;
+            border-radius: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .btn {
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            color: white;
+            width: 100%;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 0 30px #00d4ff;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-premium {
+            background: linear-gradient(45deg, gold, #ffd700);
+            color: #1a1a2e;
+            font-weight: bold;
+            box-shadow: 0 0 20px gold;
+        }
+        
+        .btn-premium:hover {
+            box-shadow: 0 0 30px gold;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(22, 33, 62, 0.7);
+            color: var(--tg-theme-text-color, #fff);
+            border: 1px solid #00d4ff;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 24px 0;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 212, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: 0 4px 30px rgba(0, 212, 255, 0.3);
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .toast.premium {
+            background: rgba(255, 215, 0, 0.9);
+            color: #1a1a2e;
+        }
+
+        .toast.error {
+            background: rgba(255, 68, 68, 0.9);
+            color: white;
+        }
+
+        .toast.free {
+            background: rgba(102, 102, 102, 0.9);
+            color: white;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Стилизация скроллбара */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(22, 33, 62, 0.5);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #00d4ff, #7b2cbf);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #7b2cbf, #00d4ff);
+        }
+    </style>
+</head>
+<body>
+    <!-- Анимированный фон с эмодзи -->
+    <div class="emoji-background">
+        <!-- Современные эмодзи связанные с гаджетами и технологиями -->
+        <div class="floating-emoji">📱</div>
+        <div class="floating-emoji">💻</div>
+        <div class="floating-emoji">🖥️</div>
+        <div class="floating-emoji">📡</div>
+        <div class="floating-emoji">🛜</div>
+        <div class="floating-emoji">📶</div>
+        <div class="floating-emoji">🔒</div>
+        <div class="floating-emoji">🔓</div>
+        <div class="floating-emoji">🔐</div>
+        <div class="floating-emoji">🔑</div>
+        <div class="floating-emoji">💾</div>
+        <div class="floating-emoji">💿</div>
+        <div class="floating-emoji">📀</div>
+        <div class="floating-emoji">🎮</div>
+        <div class="floating-emoji">🕹️</div>
+        
+        <!-- Вторая волна -->
+        <div class="floating-emoji-second">⚡</div>
+        <div class="floating-emoji-second">🔋</div>
+        <div class="floating-emoji-second">💡</div>
+        <div class="floating-emoji-second">📲</div>
+        <div class="floating-emoji-second">⌨️</div>
+        <div class="floating-emoji-second">🖱️</div>
+        <div class="floating-emoji-second">🎧</div>
+        <div class="floating-emoji-second">📷</div>
+        <div class="floating-emoji-second">🎥</div>
+        <div class="floating-emoji-second">📹</div>
+        
+        <!-- Еще эмодзи -->
+        <div class="floating-emoji" style="top: 15%; left: 45%; animation-duration: 22s;">🌐</div>
+        <div class="floating-emoji" style="top: 82%; left: 18%; animation-duration: 19s;">🔌</div>
+        <div class="floating-emoji" style="top: 33%; left: 78%; animation-duration: 27s;">💽</div>
+        <div class="floating-emoji" style="top: 91%; left: 88%; animation-duration: 24s;">📺</div>
+        <div class="floating-emoji" style="top: 27%; left: 12%; animation-duration: 21s;">📻</div>
+        <div class="floating-emoji" style="top: 68%; left: 92%; animation-duration: 26s;">⏱️</div>
+        <div class="floating-emoji" style="top: 44%; left: 32%; animation-duration: 23s;">⏲️</div>
+        <div class="floating-emoji" style="top: 73%; left: 42%; animation-duration: 28s;">🕰️</div>
+        <div class="floating-emoji" style="top: 52%; left: 62%; animation-duration: 20s;">⚙️</div>
+        <div class="floating-emoji" style="top: 37%; left: 52%; animation-duration: 25s;">🔧</div>
+        
+        <!-- Технологические эмодзи -->
+        <div class="floating-emoji" style="top: 8%; left: 72%; animation-duration: 29s;">🤖</div>
+        <div class="floating-emoji" style="top: 94%; left: 48%; animation-duration: 18s;">👾</div>
+        <div class="floating-emoji" style="top: 19%; left: 88%; animation-duration: 26s;">💫</div>
+        <div class="floating-emoji" style="top: 63%; left: 8%; animation-duration: 24s;">✨</div>
+        <div class="floating-emoji" style="top: 78%; left: 75%; animation-duration: 21s;">🌟</div>
+        <div class="floating-emoji" style="top: 41%; left: 22%; animation-duration: 30s;">💎</div>
+        <div class="floating-emoji" style="top: 86%; left: 58%; animation-duration: 23s;">🔮</div>
+        <div class="floating-emoji" style="top: 12%; left: 95%; animation-duration: 27s;">🧬</div>
+        <div class="floating-emoji" style="top: 58%; left: 35%; animation-duration: 22s;">🔬</div>
+        <div class="floating-emoji" style="top: 49%; left: 82%; animation-duration: 25s;">🔭</div>
+    </div>
+
+    <div class="container">
+        <!-- Шапка -->
+        <div class="header">
+            <h1>🌟 ShadowLink</h1>
+            <p style="opacity: 0.9; text-shadow: 0 0 10px #00d4ff;">Premium VPN • Обход блокировок</p>
+        </div>
+        
+        <!-- Статус подписки -->
+        <div id="subscriptionBanner" class="subscription-status">
+            ⚡ Бесплатный режим • Высокий пинг
+        </div>
+        
+        <!-- Легенда пинга -->
+        <div class="ping-legend">
+            <div class="legend-item">
+                <span class="ping-indicator ping-low"></span>
+                <span>Низкий пинг (Premium)</span>
+            </div>
+            <div class="legend-item">
+                <span class="ping-indicator ping-medium"></span>
+                <span>Средний пинг</span>
+            </div>
+            <div class="legend-item">
+                <span class="ping-indicator ping-high"></span>
+                <span>Высокий пинг (Бесплатно)</span>
+            </div>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="onlineUsers">2,847</div>
+                <div class="stat-label">Онлайн</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="serversCount">94</div>
+                <div class="stat-label">Серверов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="countriesCount">51</div>
+                <div class="stat-label">Стран</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgPing">85</div>
+                <div class="stat-label">Ср. пинг (мс)</div>
+            </div>
+        </div>
+        
+        <!-- Вкладки -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('servers')">🖥 Серверы</div>
+            <div class="tab" onclick="switchTab('speed')">⚡ Speed Test</div>
+            <div class="tab" onclick="switchTab('features')">✨ Функции</div>
+            <div class="tab" onclick="switchTab('account')">👤 Аккаунт</div>
+        </div>
+        
+        <!-- Вкладка Серверы -->
+        <div id="serversTab" class="tab-content">
+            <div class="server-list" id="serverList"></div>
+            
+            <div style="margin-top: 16px; padding: 16px; background: rgba(255,215,0,0.1); backdrop-filter: blur(5px); border-radius: 16px; text-align: center; border: 1px solid gold;">
+                <p style="color: gold; margin-bottom: 8px; text-shadow: 0 0 10px gold;">⭐ Premium серверы с низким пингом</p>
+                <p style="font-size: 12px; opacity: 0.9;">Бесплатные серверы имеют высокий пинг (красный индикатор)</p>
+            </div>
+        </div>
+        
+        <!-- Вкладка Speed Test -->
+        <div id="speedTab" class="tab-content hidden">
+            <div class="speed-test">
+                <h3 style="margin-bottom: 16px; text-shadow: 0 0 10px #00d4ff;">📊 Тест скорости</h3>
+                <div class="speed-value" id="speedDisplay">0</div>
+                <div class="speed-meter">
+                    <div class="speed-fill" id="speedMeter"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+                    <span>Пинг: <span id="pingDisplay">0</span> мс</span>
+                    <span>Потеря: <span id="lossDisplay">0</span>%</span>
+                </div>
+                <button class="btn btn-primary" onclick="startSpeedTest()" style="margin-top: 16px;" id="speedTestBtn">
+                    ▶ Начать тест
+                </button>
+            </div>
+            
+            <div class="server-list" style="margin-top: 20px;">
+                <div class="server-item free-server" onclick="connectToServer('ru-msk-free')">
+                    <div class="server-info">
+                        <span class="server-flag">🇷🇺</span>
+                        <div class="server-details">
+                            <span class="server-name">Москва (Бесплатно)</span>
+                            <span class="server-ping ping-high-text">⚠️ 150-200 мс</span>
+                        </div>
+                    </div>
+                    <span class="free-badge">FREE</span>
+                </div>
+                <div class="server-item free-server" onclick="connectToServer('ru-spb-free')">
+                    <div class="server-info">
+                        <span class="server-flag">🇷🇺</span>
+                        <div class="server-details">
+                            <span class="server-name">СПб (Бесплатно)</span>
+                            <span class="server-ping ping-high-text">⚠️ 180-230 мс</span>
+                        </div>
+                    </div>
+                    <span class="free-badge">FREE</span>
+                </div>
+                <div class="server-item premium-server" onclick="connectToServer('de-fra-42')">
+                    <div class="server-info">
+                        <span class="server-flag">🇩🇪</span>
+                        <div class="server-details">
+                            <span class="server-name">Франкфурт (Premium)</span>
+                            <span class="server-ping ping-low-text">⚡ 15-25 мс</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка Функции -->
+        <div id="featuresTab" class="tab-content hidden">
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">🛡️</div>
+                    <div>Обход DPI</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div>Низкий пинг</div>
+                    <span class="premium-badge">PREMIUM</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div>No Logs</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <div>Multi-platform</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🌐</div>
+                    <div>51 страна</div>
+                    <span class="premium-badge">PREMIUM</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🔄</div>
+                    <div>Unlimited</div>
+                </div>
+            </div>
+            
+            <button class="btn btn-premium" onclick="buySubscription()" style="margin-top: 16px; width: 100%;">
+                💎 Получить низкий пинг за 100 ⭐
+            </button>
+        </div>
+        
+        <!-- Вкладка Аккаунт -->
+        <div id="accountTab" class="tab-content hidden">
+            <div class="server-list">
+                <div class="server-item">
+                    <div class="server-info">
+                        <span class="server-flag">👤</span>
+                        <span class="server-name">ID пользователя</span>
+                    </div>
+                    <span id="userId">-</span>
+                </div>
+                <div class="server-item">
+                    <div class="server-info">
+                        <span class="server-flag">📅</span>
+                        <span class="server-name">Статус</span>
+                    </div>
+                    <span id="subscriptionStatus">Бесплатный</span>
+                </div>
+                <div class="server-item">
+                    <div class="server-info">
+                        <span class="server-flag">📊</span>
+                        <span class="server-name">Текущий пинг</span>
+                    </div>
+                    <span id="currentPing">Высокий</span>
+                </div>
+                <div class="server-item">
+                    <div class="server-info">
+                        <span class="server-flag">⚡</span>
+                        <span class="server-name">Доступ к низкому пингу</span>
+                    </div>
+                    <span id="lowPingAccess">❌ Нет</span>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="getConfig()">⚙️ Получить конфиг</button>
+                <button class="btn btn-secondary" onclick="support()">📞 Поддержка</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        let userData = {};
+        let servers = [];
+        let speedTestInterval;
+        let hasPremium = false;
+        
+        // Инициализация
+        tg.ready();
+        userData = tg.initDataUnsafe?.user || {};
+        document.getElementById('userId').textContent = userData.id || 'Неизвестно';
+        
+        function checkPremiumStatus() {
+            tg.sendData(JSON.stringify({
+                action: 'check_premium'
+            }));
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if (type === 'premium') toast.classList.add('premium');
+            if (type === 'error') toast.classList.add('error');
+            if (type === 'free') toast.classList.add('free');
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        function updateUIForPremium() {
+            const banner = document.getElementById('subscriptionBanner');
+            const subscriptionStatus = document.getElementById('subscriptionStatus');
+            const lowPingAccess = document.getElementById('lowPingAccess');
+            const currentPing = document.getElementById('currentPing');
+            const avgPing = document.getElementById('avgPing');
+            
+            if (hasPremium) {
+                banner.innerHTML = '✨ Premium активен • Доступны серверы с низким пингом ✨';
+                banner.style.background = 'linear-gradient(45deg, gold, #ffd700)';
+                banner.style.color = '#1a1a2e';
+                subscriptionStatus.textContent = 'Premium';
+                subscriptionStatus.style.color = 'gold';
+                subscriptionStatus.style.fontWeight = 'bold';
+                lowPingAccess.innerHTML = '✅ Да';
+                lowPingAccess.style.color = '#00ff00';
+                currentPing.textContent = 'Низкий';
+                currentPing.style.color = '#00ff00';
+                avgPing.textContent = '32';
+            } else {
+                banner.innerHTML = '⚡ Бесплатный режим • Доступны только серверы с высоким пингом ⚡';
+                banner.style.background = 'linear-gradient(45deg, #666, #444)';
+                banner.style.color = 'white';
+                subscriptionStatus.textContent = 'Бесплатный';
+                subscriptionStatus.style.color = '';
+                subscriptionStatus.style.fontWeight = '';
+                lowPingAccess.innerHTML = '❌ Нет';
+                lowPingAccess.style.color = '#ff4444';
+                currentPing.textContent = 'Высокий';
+                currentPing.style.color = '#ff4444';
+                avgPing.textContent = '85';
+            }
+            
+            loadServers();
+        }
+        
+        function loadServers() {
+            servers = [
+                // Premium серверы - низкий пинг
+                { flag: '🇩🇪', country: 'Германия', city: 'Франкфурт', ping: 15, pingRange: '15-25', load: 43, code: 'de-fra-42', premium: true, pingLevel: 'low' },
+                { flag: '🇳🇱', country: 'Нидерланды', city: 'Амстердам', ping: 18, pingRange: '18-28', load: 51, code: 'nl-ams-17', premium: true, pingLevel: 'low' },
+                { flag: '🇬🇧', country: 'Великобритания', city: 'Лондон', ping: 22, pingRange: '22-32', load: 38, code: 'uk-lon-08', premium: true, pingLevel: 'low' },
+                { flag: '🇫🇷', country: 'Франция', city: 'Париж', ping: 24, pingRange: '24-34', load: 29, code: 'fr-par-23', premium: true, pingLevel: 'low' },
+                { flag: '🇯🇵', country: 'Япония', city: 'Токио', ping: 28, pingRange: '28-38', load: 52, code: 'jp-tyo-41', premium: true, pingLevel: 'low' },
+                { flag: '🇸🇬', country: 'Сингапур', city: 'Сингапур', ping: 32, pingRange: '32-42', load: 47, code: 'sg-sin-08', premium: true, pingLevel: 'low' },
+                
+                // Бесплатные серверы - высокий пинг
+                { flag: '🇷🇺', country: 'Россия', city: 'Москва', ping: 180, pingRange: '150-200', load: 95, code: 'ru-msk-free', premium: false, pingLevel: 'high' },
+                { flag: '🇷🇺', country: 'Россия', city: 'СПб', ping: 210, pingRange: '180-230', load: 92, code: 'ru-spb-free', premium: false, pingLevel: 'high' },
+                { flag: '🇺🇸', country: 'США', city: 'Нью-Йорк', ping: 250, pingRange: '220-280', load: 88, code: 'us-nyc-free', premium: false, pingLevel: 'high' },
+                { flag: '🇨🇦', country: 'Канада', city: 'Торонто', ping: 270, pingRange: '240-300', load: 76, code: 'ca-tor-free', premium: false, pingLevel: 'high' },
+                { flag: '🇧🇷', country: 'Бразилия', city: 'Сан-Паулу', ping: 320, pingRange: '280-350', load: 65, code: 'br-sao-free', premium: false, pingLevel: 'high' },
+                { flag: '🇦🇺', country: 'Австралия', city: 'Сидней', ping: 380, pingRange: '350-420', load: 45, code: 'au-syd-free', premium: false, pingLevel: 'high' }
+            ];
+            
+            const serverList = document.getElementById('serverList');
+            serverList.innerHTML = '';
+            
+            servers.forEach(server => {
+                const serverItem = document.createElement('div');
+                serverItem.className = 'server-item';
+                
+                if (server.premium) {
+                    serverItem.classList.add('premium-server');
+                } else {
+                    serverItem.classList.add('free-server');
+                }
+                
+                serverItem.onclick = () => {
+                    if (server.premium && !hasPremium) {
+                        showToast('🔒 Серверы с низким пингом только для Premium', 'error');
+                        buySubscription();
+                    } else {
+                        connectToServer(server.code);
+                    }
+                };
+                
+                let pingColor = '';
+                let pingIndicator = '';
+                
+                if (server.pingLevel === 'low') {
+                    pingColor = 'ping-low-text';
+                    pingIndicator = '<span class="ping-indicator ping-low"></span>';
+                } else if (server.pingLevel === 'high') {
+                    pingColor = 'ping-high-text';
+                    pingIndicator = '<span class="ping-indicator ping-high"></span>';
+                }
+                
+                serverItem.innerHTML = `
+                    <div class="server-info">
+                        <span class="server-flag">${server.flag}</span>
+                        <div class="server-details">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="server-name">${server.country}, ${server.city}</span>
+                                ${server.premium ? '<span class="premium-badge">LOW PING</span>' : '<span class="free-badge">HIGH PING</span>'}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${pingIndicator}
+                                <span class="server-ping ${pingColor}">${server.pingRange} мс</span>
+                            </div>
+                            <div class="load-bar">
+                                <div class="load-fill" style="width: ${server.load}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                serverList.appendChild(serverItem);
+            });
+            
+            document.getElementById('onlineUsers').textContent = Math.floor(2000 + Math.random() * 2000);
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+        }
+        
+        function connectToServer(serverCode) {
+            const server = servers.find(s => s.code === serverCode);
+            const isPremiumServer = server?.premium;
+            
+            if (isPremiumServer && !hasPremium) {
+                showToast('🔒 Только Premium пользователи могут подключаться к серверам с низким пингом', 'error');
+                buySubscription();
+                return;
+            }
+            
+            const pingType = isPremiumServer ? 'низким' : 'высоким';
+            const emoji = isPremiumServer ? '⚡' : '🐢';
+            showToast(`${emoji} Подключаемся к серверу с ${pingType} пингом...`, isPremiumServer ? 'premium' : 'free');
+            
+            tg.sendData(JSON.stringify({
+                action: 'connect',
+                server: serverCode,
+                premium: isPremiumServer
+            }));
+            
+            setTimeout(() => {
+                showToast(`✅ Подключено к серверу с ${pingType} пингом`, isPremiumServer ? 'premium' : 'free');
+            }, 2000);
+        }
+        
+        function startSpeedTest() {
+            const btn = document.getElementById('speedTestBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Тестирование...';
+            
+            const speedDisplay = document.getElementById('speedDisplay');
+            const speedMeter = document.getElementById('speedMeter');
+            const pingDisplay = document.getElementById('pingDisplay');
+            const lossDisplay = document.getElementById('lossDisplay');
+            
+            let progress = 0;
+            if (speedTestInterval) clearInterval(speedTestInterval);
+            
+            speedTestInterval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(speedTestInterval);
+                    
+                    let finalSpeed, finalPing, finalLoss;
+                    
+                    if (hasPremium) {
+                        finalSpeed = (Math.random() * 280 + 120).toFixed(1);
+                        finalPing = Math.floor(Math.random() * 20 + 10);
+                        finalLoss = (Math.random() * 0.5).toFixed(1);
+                    } else {
+                        finalSpeed = (Math.random() * 20 + 5).toFixed(1);
+                        finalPing = Math.floor(Math.random() * 150 + 100);
+                        finalLoss = (Math.random() * 8 + 2).toFixed(1);
+                    }
+                    
+                    speedDisplay.textContent = finalSpeed;
+                    speedMeter.style.width = '100%';
+                    pingDisplay.textContent = finalPing;
+                    lossDisplay.textContent = finalLoss;
+                    
+                    btn.disabled = false;
+                    btn.textContent = '▶ Начать тест';
+                    
+                    tg.sendData(JSON.stringify({
+                        action: 'speed_test',
+                        speed: finalSpeed,
+                        ping: finalPing,
+                        loss: finalLoss,
+                        premium: hasPremium
+                    }));
+                    
+                    const message = hasPremium ?
+                        `📊 Premium: ${finalSpeed} Мбит/с, Пинг: ${finalPing} мс (низкий)` :
+                        `📊 Бесплатно: ${finalSpeed} Мбит/с, Пинг: ${finalPing} мс (высокий)`;
+                    
+                    showToast(message, hasPremium ? 'premium' : 'free');
+                } else {
+                    if (hasPremium) {
+                        speedDisplay.textContent = (progress * 4).toFixed(1);
+                        pingDisplay.textContent = Math.floor(Math.random() * 20 + 15);
+                    } else {
+                        speedDisplay.textContent = (progress * 0.5).toFixed(1);
+                        pingDisplay.textContent = Math.floor(Math.random() * 150 + 120);
+                    }
+                    speedMeter.style.width = progress + '%';
+                }
+            }, 100);
+        }
+        
+        function buySubscription() {
+            showToast('⏳ Перенаправление на оплату...', 'premium');
+            
+            tg.sendData(JSON.stringify({
+                action: 'buy',
+                price: 100
+            }));
+            
+            setTimeout(() => {
+                showToast('💎 После оплаты вы получите доступ к серверам с низким пингом', 'premium');
+            }, 1000);
+        }
+        
+        function getConfig() {
+            showToast('⏳ Запрос конфигурации...');
+            
+            tg.sendData(JSON.stringify({
+                action: 'get_config'
+            }));
+        }
+        
+        function support() {
+            showToast('📞 Запрос в поддержку отправлен');
+            
+            tg.sendData(JSON.stringify({
+                action: 'support'
+            }));
+        }
+        
+        setInterval(() => {
+            document.getElementById('onlineUsers').textContent = Math.floor(2000 + Math.random() * 2000);
+        }, 5000);
+        
+        loadServers();
+        updateUIForPremium();
+        
+        tg.onEvent('mainButtonClicked', function() {
+            buySubscription();
+        });
+        
+        tg.MainButton.setText('Купить низкий пинг ⚡');
+        tg.MainButton.onClick(buySubscription);
+        tg.MainButton.show();
+        
+        setTimeout(() => {
+            checkPremiumStatus();
+        }, 500);
+    </script>
+</body>
+</html>
